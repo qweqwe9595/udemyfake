@@ -5,7 +5,11 @@
 </template>
 
 <script>
+import store from "./store/store";
 export default {
-  data: () => ({ drawer: null }),
+  data: () => ({}),
+  created() {
+    store.commit("getCourse");
+  },
 };
 </script>
