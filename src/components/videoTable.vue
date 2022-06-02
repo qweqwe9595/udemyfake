@@ -1,7 +1,7 @@
 <template>
   <v-data-table
     :headers="headers"
-    :items="desserts"
+    :items="documents"
     sort-by="calories"
     class="elevation-1"
   >
@@ -43,7 +43,7 @@
                     md="4"
                   >
                     <v-text-field
-                      v-model="editedItem.name"
+                      v-model="editedItem.documentName"
                       label="Document Name"
                     ></v-text-field>
                   </v-col>
@@ -53,7 +53,7 @@
                     md="4"
                   >
                     <v-text-field
-                      v-model="editedItem.protein"
+                      v-model="editedItem.path"
                       label="path"
                     ></v-text-field>
                   </v-col>
@@ -131,8 +131,19 @@
 </template>
 
 <script>
+import { db } from "@/libs/firebase";
+import {
+  doc,
+  setDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 export default {
+  props: ["courseId"],
   data: () => ({
+    documents: [],
     dialog: false,
     dialogDelete: false,
     headers: [
@@ -140,19 +151,18 @@ export default {
         text: "Document Name",
         align: "start",
         sortable: true,
-        value: "name",
+        value: "documentName",
       },
       { text: "Path", value: "path", sortable: false },
       { text: "Actions", value: "actions", sortable: false },
     ],
-    desserts: [],
     editedIndex: -1,
     editedItem: {
-      name: "",
+      documentName: "",
       path: "",
     },
     defaultItem: {
-      name: "",
+      documentName: "",
       path: "",
     },
   }),
@@ -170,6 +180,12 @@ export default {
     dialogDelete(val) {
       val || this.closeDelete();
     },
+    courseId: {
+      handler() {
+        this.getDocuments();
+      },
+      immediate: true,
+    },
   },
 
   created() {
@@ -178,23 +194,24 @@ export default {
 
   methods: {
     initialize() {
-      this.desserts = this.$store.allCourse;
+      // this.documents = this.$store.state.allCourse;
+      this.documents = [{ documentName: "asdkljasdkj", path: "askdjasdkj" }];
     },
 
     editItem(item) {
-      this.editedIndex = this.desserts.indexOf(item);
+      this.editedIndex = this.documents.indexOf(item);
       this.editedItem = Object.assign({}, item);
       this.dialog = true;
     },
 
     deleteItem(item) {
-      this.editedIndex = this.desserts.indexOf(item);
+      this.editedIndex = this.documents.indexOf(item);
       this.editedItem = Object.assign({}, item);
       this.dialogDelete = true;
     },
 
     deleteItemConfirm() {
-      this.desserts.splice(this.editedIndex, 1);
+      this.documents.splice(this.editedIndex, 1);
       this.closeDelete();
     },
 
@@ -214,13 +231,33 @@ export default {
       });
     },
 
-    save() {
+    async save() {
       if (this.editedIndex > -1) {
-        Object.assign(this.desserts[this.editedIndex], this.editedItem);
+        Object.assign(this.documents[this.editedIndex], this.editedItem);
       } else {
-        this.desserts.push(this.editedItem);
+        const addNewQuery = doc(collection(db, "document"));
+        // later...
+        await setDoc(addNewQuery, {
+          courseId: this.courseId,
+          documentName: this.editedItem.documentName,
+          path: this.editedItem.path,
+        });
       }
+      this.getDocuments();
       this.close();
+    },
+    async getDocuments() {
+      this.documents = [];
+      const q = query(
+        collection(db, "document"),
+        where("courseId", "==", this.courseId)
+      );
+
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach((doc) => {
+        // doc.data() is never undefined for query doc snapshots
+        this.documents.unshift({ documentId: doc.data(), ...doc.data() });
+      });
     },
   },
 };

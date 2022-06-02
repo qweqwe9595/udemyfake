@@ -28,7 +28,7 @@
 
             <v-card-text>
               <v-container>
-                <videoTableVue />
+                <videoTableVue :courseId="courseId" />
               </v-container>
             </v-card-text>
 
@@ -143,10 +143,11 @@
 <script>
 import videoTableVue from "./videoTable.vue";
 import { db } from "@/libs/firebase";
-import { doc, setDoc, collection } from "firebase/firestore";
+import { doc, setDoc, collection, deleteDoc } from "firebase/firestore";
 
 export default {
   data: () => ({
+    courseId: null,
     dialog: false,
     dialogDelete: false,
     newItemDialog: false,
@@ -216,9 +217,10 @@ export default {
       this.editedIndex = this.desserts.indexOf(item);
       this.editedItem = Object.assign({}, item);
       this.dialog = true;
+      this.courseId = item.courseId;
     },
 
-    deleteItem(item) {
+    async deleteItem(item) {
       this.editedIndex = this.desserts.indexOf(item);
       this.editedItem = Object.assign({}, item);
       this.dialogDelete = true;
@@ -230,8 +232,10 @@ export default {
       this.dialogNew = true;
     },
 
-    deleteItemConfirm() {
+    async deleteItemConfirm() {
       this.desserts.splice(this.editedIndex, 1);
+
+      await deleteDoc(doc(db, "course", this.editedItem.courseId));
       this.closeDelete();
     },
 
